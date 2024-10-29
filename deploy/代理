@@ -99,3 +99,97 @@ docker compose up -d
 
 ### 注意
 启用webman后做的任何代码修改都需要重启生效
+
+## 网站备份
+> 日本TeraCLOUD网盘通过WebDAV挂载到服务器，免费20G空间
+用来每天保存数据足够了
+
+先注册一个账号
+teracloud.jp
+
+并且创建获取APP的账号和随机生成的密码
+#### 安装davfs2工具
+````
+#CentOS
+yum install davfs2 -y
+
+#Ubuntu/Debian
+apt install davfs2 -y
+````
+提示非ROOT挂载选择NO
+配置地址
+````
+mkdir /cloud
+mount -t davfs https://ogi.teracloud.jp/dav/ /cloud
+````
+然后输入账号密码即可。没有异常输出就是正常，出现问题让AI帮你排错。
+
+#### 1飞书消息提示
+做成脚本保存
+````
+root@ip-172-31-35-166:/home/shell# cat feishumsg.sh 
+curl -X POST -H "Content-Type: application/json" \
+    -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"$1\"}}" \
+    "https://open.feishu.cn/open-apis/bot/v2/hook/$2"
+````
+
+#### 2数据库备份脚本
+````
+root@ip-172-31-35-166:/home/shell# cat file_backup.sh 
+#!/bin/bash
+
+# 检查输入参数
+if [ "$#" -ne 4 ]; then
+    echo "用法: $0 <备份包前缀> <文件保存路径> <被备份路径> <飞书TOKEN>"
+    exit 1
+fi
+
+# 获取参数
+PREFIX=$1
+SAVE_PATH=$2
+SOURCE_PATH=$3
+FSBOT_TOKEN=$4
+
+# 获得当前时间戳
+F_DATE=$(date +%Y-%m-%d_%H)
+
+# 根据时间打包命名&打包存放路径
+F_FILE_NAME="$SAVE_PATH/${PREFIX}_${F_DATE}.tar.gz"
+
+# 压缩函数
+CompressedFile() {
+    # 执行tar命令进行压缩
+    echo "开始压缩 $F_FILE_NAME"
+    tar -czf "$F_FILE_NAME" -C "$SOURCE_PATH" . 2>/dev/null 
+
+    # 判断文件是否压缩成功
+    if [ -f "$F_FILE_NAME" ]; then
+        size=$(du -sh "$SOURCE_PATH" | cut -f1)
+        echo "$F_FILE_NAME 压缩成功"
+        sh /home/shell/feishumsg.sh "压缩成功: $F_FILE_NAME 目录大小： $size" "$FSBOT_TOKEN" 2>/dev/null 
+    else
+        echo "$F_FILE_NAME 压缩失败"
+        sh /home/shell/feishumsg.sh "压缩失败: $F_FILE_NAME" "$FSBOT_TOKEN" 2>/dev/null 
+    fi
+}
+
+CompressedFile
+````
+#### 3使用
+````
+root@ip-172-31-35-166:/home/shell# cat add_task_to_crontab.sh 
+#!/bin/bash
+
+# 要添加到 crontab 的任务
+task="0 6 * * * sh /home/shell/file_backup.sh qwq /cloud/sql/qwq /var/lib/docker/volumes/mysql f67a70xxxxxxxxxxxxxx4682"
+
+# 获取当前用户的 crontab 内容并检查是否已存在该任务
+current_crontab=$(crontab -l)
+if echo "$current_crontab" | grep -q "$task"; then
+    echo "Task already exists in crontab."
+else
+    # 将任务添加到 crontab
+    (crontab -l ; echo "$task") | crontab
+    echo "Task added to crontab successfully."
+fi
+````
