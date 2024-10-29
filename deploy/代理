@@ -1,4 +1,4 @@
-## Docker-Compose 部署迁移教程
+## Xboard Docker-Compose 部署迁移教程
 本文教你如何在命令行使用docker-compose + MySQL5.7+内置redis来快速部署Xboard  
 需要自行处理好Mysql的安装。
 源地址：
@@ -59,7 +59,13 @@ cd /root/Xboard && docker compose up -d
 
 网站地址:   http://你的IP:7001/   
 在此你已经成功部署了, 你可以访问网址体验Xboard的完整功能， 
+### 配置端口转发
 
+> （本教程之前已经配置，直接更新域名解析A记录即可）
+
+利用Cloudflare的Origin Rules实现自定域回源指定端口
+
+https://hyrikuma-akari.top/2024/04/07/cf-origin-rules/
 
 ### **更新**
 1. 修改版本
