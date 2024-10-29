@@ -1,13 +1,13 @@
-## Docker-Compose 部署教程
-本文教你如何在命令行使用docker-compose + sqlite来快速部署Xboard  
-如果你需要使用Mysql，你需要自行处理好Mysql的安装。
+## Docker-Compose 部署迁移教程
+本文教你如何在命令行使用docker-compose + MySQL5.7+内置redis来快速部署Xboard  
+需要自行处理好Mysql的安装。
 源地址：
 ```
 https://github.com/cedar2025/Xboard/blob/dev/docs/docker-compose%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md
 ```
 ### 部署 (使用docker-compose 2分钟部署)
 > 在此提供Xboard安装、快速体验Xboard的步骤。   
-使用docker compose + sqlite 快速部署站点（**无需安装Mysql以及redis**）
+使用docker compose + sqlite 快速部署站点（**安装Mysql使用内部redis**）
 1. AB安装docker
 ````
 curl -sSL https://get.docker.com | bash
@@ -20,14 +20,13 @@ B机器安装数据库
 ````
 docker pull mysql:5.7
 docker volume create mysql
-
 ````
 将备份包上传到服务器开始执行
 将数据倾倒数据库
 ````
 tar xvf qwq_2024-10-28_06.tar.gz -C /var/lib/docker/volumes/mysql/
 ````
-采用容器host模式启动数据库
+采用容器host模式启动数据库 (下面命令看不明白让AI给你解释)
 ```
 docker run --name mysql --net=host -v mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=这里是密码 -d mysql:5.7 --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
 ```
@@ -36,11 +35,6 @@ docker run --name mysql --net=host -v mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWOR
 cd /var/lib/docker/volumes/mysql/ && cat start.sh
 ````
 
-MYSQL_ROOT_PASSWORD=密码
-
-character-set-server=utf8 指定默认字符集为UTF-8
-
-collation-server=utf8_bin 指定默认字符集为UTF-8
 
 #### A机器操作获取Docker compose 文件
 
@@ -50,26 +44,22 @@ collation-server=utf8_bin 指定默认字符集为UTF-8
 ````
 sudo chown -R 1000:1000 ./.docker/.data/redis
 ````
-3. 执行数据库安装命令
-> 选择 **Docker内置的Redis**
-```
-cd Xboard && docker compose run -it --rm xboard php artisan xboard:install
-```
-> 执行这条命令之后，会返回你的后台地址和管理员账号密码（你需要记录下来）  
-> 你需要执行下面的 **启动xborad** 步骤之后才能访问后台
+修改.env变量，将老的数据库地址修改为新的ip
+````
+vim ~/Xboard/.env
+````
 
-4. 启动Xboard
+启动Xboard
 ```
-docker compose up -d
+cd /root/Xboard && docker compose up -d
 ```
 > 安装完成之后即可访问你的站点
-5. 访问站点 
+访问站点 
 > 启动之后网站端口默认为7001, 你可以配置nginx反向代理使用80端口  
 
 网站地址:   http://你的IP:7001/   
 在此你已经成功部署了, 你可以访问网址体验Xboard的完整功能， 
 
-> 如果你需要使用mysql，请自行安装Mysql后重新部署
 
 ### **更新**
 1. 修改版本
